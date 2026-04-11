@@ -1,1067 +1,589 @@
 <!DOCTYPE html>
 <html lang="zh">
-
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
   <title>生产进度管理 PRO</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-  <script
-    src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
   <style>
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0
-    }
-
-    body {
-      font-family: system-ui, sans-serif;
-      background: #0f0c29;
-      color: #fff;
-      height: 100vh;
-      overflow: hidden
-    }
-
-    .shell {
-      display: grid;
-      grid-template-columns: 1fr 340px;
-      grid-template-rows: auto auto 1fr;
-      gap: 12px;
-      padding: 12px;
-      height: 100vh
-    }
-
-    .header {
-      grid-column: 1/-1;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 10px 16px;
-      background: rgba(255, 255, 255, 0.07);
-      border: 0.5px solid rgba(255, 255, 255, 0.12);
-      border-radius: 12px
-    }
-
-    .header h1 {
-      font-size: 15px;
-      font-weight: 500
-    }
-
-    .zoom-btns {
-      display: flex;
-      gap: 6px
-    }
-
-    .zoom-btns button {
-      font-size: 12px;
-      padding: 4px 12px;
-      border: 0.5px solid rgba(255, 255, 255, 0.2);
-      border-radius: 8px;
-      background: transparent;
-      color: rgba(255, 255, 255, 0.6);
-      cursor: pointer
-    }
-
-    .zoom-btns button.active {
-      background: rgba(55, 138, 221, 0.25);
-      color: #85b7eb;
-      border-color: #378add
-    }
-
-    .alert-bar {
-      grid-column: 1/-1;
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap
-    }
-
-    .alert-chip {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      padding: 6px 12px;
-      border-radius: 8px;
-      font-size: 12px;
-      font-weight: 500;
-      cursor: pointer;
-      border: 0.5px solid transparent;
-      transition: opacity .15s
-    }
-
-    .alert-chip:hover {
-      opacity: .8
-    }
-
-    .chip-over {
-      background: rgba(226, 75, 74, 0.18);
-      border-color: rgba(226, 75, 74, 0.4);
-      color: #f09595
-    }
-
-    .chip-soon {
-      background: rgba(186, 117, 23, 0.18);
-      border-color: rgba(186, 117, 23, 0.4);
-      color: #ef9f27
-    }
-
-    .chip-ok {
-      background: rgba(29, 158, 117, 0.18);
-      border-color: rgba(29, 158, 117, 0.4);
-      color: #5dcaa5
-    }
-
-    .alert-dot {
-      width: 7px;
-      height: 7px;
-      border-radius: 50%
-    }
-
-    .pulse {
-      animation: pulse 1.4s infinite
-    }
-
-    @keyframes pulse {
-
-      0%,
-      100% {
-        opacity: 1
-      }
-
-      50% {
-        opacity: .35
-      }
-    }
-
-    .chart-panel {
-      background: rgba(255, 255, 255, 0.07);
-      border: 0.5px solid rgba(255, 255, 255, 0.1);
-      border-radius: 12px;
-      padding: 16px;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden
-    }
-
-    .chart-wrap {
-      flex: 1;
-      position: relative;
-      min-height: 0
-    }
-
-    .side-panel {
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-      overflow: hidden;
-    }
-
-    .form-card {
-      background: rgba(255, 255, 255, 0.07);
-      border: 0.5px solid rgba(255, 255, 255, 0.1);
-      border-radius: 12px;
-      padding: 16px
-    }
-
-    .form-card label {
-      font-size: 11px;
-      font-weight: 500;
-      color: rgba(255, 255, 255, 0.45);
-      letter-spacing: .06em;
-      display: block;
-      margin-bottom: 10px
-    }
-
-    .form-card input,
-    .form-card select {
-      width: 100%;
-      padding: 7px 10px;
-      font-size: 13px;
-      border: 0.5px solid rgba(255, 255, 255, 0.15);
-      border-radius: 8px;
-      background: rgba(255, 255, 255, 0.06);
-      color: #fff;
-      margin-bottom: 8px;
-      outline: none
-    }
-
-    .form-card input:focus,
-    .form-card select:focus {
-      border-color: rgba(55, 138, 221, 0.6)
-    }
-
-    .form-card select option {
-      background: #1a1a2e;
-      color: #fff
-    }
-
-    .preview-box {
-      background: rgba(0, 0, 0, 0.2);
-      border: 0.5px solid rgba(255, 255, 255, 0.1);
-      border-radius: 8px;
-      padding: 10px;
-      font-size: 12px;
-      color: rgba(255, 255, 255, 0.5);
-      min-height: 56px;
-      margin-bottom: 8px
-    }
-
-    .preview-row {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      margin-bottom: 4px
-    }
-
-    .preview-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      flex-shrink: 0
-    }
-
-    .preview-bar {
-      height: 7px;
-      border-radius: 4px;
-      transition: width .3s;
-      opacity: .8
-    }
-
-    .btn-add {
-      width: 100%;
-      padding: 9px;
-      font-size: 13px;
-      font-weight: 500;
-      border: 0.5px solid #378add;
-      border-radius: 8px;
-      background: rgba(55, 138, 221, 0.2);
-      color: #85b7eb;
-      cursor: pointer;
-      transition: opacity .15s
-    }
-
-    .btn-add:hover {
-      opacity: .8
-    }
-
-    .list-card {
-      background: rgba(255, 255, 255, 0.07);
-      border: 0.5px solid rgba(255, 255, 255, 0.1);
-      border-radius: 12px;
-      padding: 16px;
-      flex: 1;
-      overflow: hidden;
-      display: flex;
-      flex-direction: column;
-      min-height: 0
-    }
-
-    .list-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 10px;
-      flex-shrink: 0
-    }
-
-    .list-count {
-      font-size: 11px;
-      color: rgba(255, 255, 255, 0.35)
-    }
-
-    .list-scroll {
-      overflow-y: auto;
-      flex: 1
-    }
-
-    .list-scroll::-webkit-scrollbar {
-      width: 3px
-    }
-
-    .list-scroll::-webkit-scrollbar-thumb {
-      background: rgba(255, 255, 255, 0.15);
-      border-radius: 99px
-    }
-
-    .item-row {
-      display: flex;
-      align-items: flex-start;
-      gap: 8px;
-      padding: 10px;
-      border-radius: 10px;
-      margin-bottom: 6px;
-      border: 0.5px solid rgba(255, 255, 255, 0.08);
-      cursor: pointer;
-      transition: background .15s;
-      position: relative
-    }
-
-    .item-row:hover {
-      background: rgba(255, 255, 255, 0.06)
-    }
-
-    .item-row.selected {
-      background: rgba(55, 138, 221, 0.18);
-      border-color: rgba(55, 138, 221, 0.4)
-    }
-
-    .item-row.row-over {
-      border-color: rgba(226, 75, 74, 0.5);
-      background: rgba(226, 75, 74, 0.07)
-    }
-
-    .item-row.row-soon {
-      border-color: rgba(186, 117, 23, 0.5);
-      background: rgba(186, 117, 23, 0.07)
-    }
-
-    .item-row.row-over::before {
-      content: '';
-      position: absolute;
-      left: 0;
-      top: 0;
-      bottom: 0;
-      width: 3px;
-      background: #E24B4A;
-      border-radius: 10px 0 0 10px
-    }
-
-    .item-row.row-soon::before {
-      content: '';
-      position: absolute;
-      left: 0;
-      top: 0;
-      bottom: 0;
-      width: 3px;
-      background: #ef9f27;
-      border-radius: 10px 0 0 10px
-    }
-
-    .item-dot {
-      width: 9px;
-      height: 9px;
-      border-radius: 50%;
-      flex-shrink: 0;
-      margin-top: 3px
-    }
-
-    .item-name {
-      font-size: 13px;
-      font-weight: 500;
-      flex: 1;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis
-    }
-
-    .badge {
-      font-size: 10px;
-      padding: 2px 7px;
-      border-radius: 99px;
-      font-weight: 500
-    }
-
-    .badge-ok {
-      background: rgba(29, 158, 117, 0.2);
-      color: #5dcaa5
-    }
-
-    .badge-soon {
-      background: rgba(186, 117, 23, 0.25);
-      color: #ef9f27
-    }
-
-    .badge-over {
-      background: rgba(226, 75, 74, 0.25);
-      color: #f09595
-    }
-
-    .del-btn {
-      font-size: 10px;
-      padding: 2px 7px;
-      border: 0.5px solid rgba(226, 75, 74, 0.4);
-      border-radius: 6px;
-      color: #f09595;
-      background: transparent;
-      cursor: pointer;
-      opacity: .6;
-      flex-shrink: 0
-    }
-
-    .del-btn:hover {
-      opacity: 1
-    }
-
-    /* phase pill + tooltip */
-    .phase-pill {
-      font-size: 9px;
-      padding: 2px 6px;
-      border-radius: 3px;
-      position: relative;
-      cursor: default;
-      transition: transform .1s
-    }
-
-    .phase-pill:hover {
-      transform: scale(1.15)
-    }
-
-    .phase-pill .tip {
-      white-space: pre;
-      position: absolute;
-      bottom: calc(100% + 8px);
-      left: 50%;
-      transform: translateX(-50%);
-      background: #12103a;
-      border: 0.5px solid rgba(255, 255, 255, .22);
-      border-radius: 9px;
-      padding: 9px 12px;
-      font-size: 11px;
-      line-height: 1.75;
-      color: rgba(255, 255, 255, .88);
-      pointer-events: none;
-      opacity: 0;
-      transition: opacity .18s;
-      z-index: 999;
-      min-width: 155px;
-      box-shadow: 0 6px 24px rgba(0, 0, 0, .55);
-    }
-
-    .phase-pill:hover .tip {
-      opacity: 1
-    }
-
-    .tip-line-ok {
-      color: #5dcaa5
-    }
-
-    .tip-line-soon {
-      color: #ef9f27
-    }
-
-    .tip-line-over {
-      color: #f09595
-    }
-
-    .tip-divider {
-      border: none;
-      border-top: 0.5px solid rgba(255, 255, 255, .12);
-      margin: 4px 0
-    }
-
-    /* modal */
-    .modal-bg {
-      position: fixed;
-      inset: 0;
-      background: rgba(0, 0, 0, .65);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 100
-    }
-
-    .modal {
-      background: #1a1635;
-      border: 0.5px solid rgba(255, 255, 255, .15);
-      border-radius: 16px;
-      padding: 24px;
-      width: 500px;
-      max-width: 95vw;
-      max-height: 85vh;
-      overflow-y: auto
-    }
-
-    .modal h2 {
-      font-size: 15px;
-      font-weight: 500;
-      margin-bottom: 16px
-    }
-
-    .modal-close {
-      float: right;
-      background: transparent;
-      border: none;
-      color: rgba(255, 255, 255, .5);
-      font-size: 18px;
-      cursor: pointer;
-      line-height: 1
-    }
-
-    .check-row {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 10px 12px;
-      border-radius: 8px;
-      margin-bottom: 6px;
-      border: 0.5px solid rgba(255, 255, 255, .08)
-    }
-
-    .check-row.cr-over {
-      background: rgba(226, 75, 74, .1);
-      border-color: rgba(226, 75, 74, .3)
-    }
-
-    .check-row.cr-soon {
-      background: rgba(186, 117, 23, .1);
-      border-color: rgba(186, 117, 23, .3)
-    }
-
-    .check-row.cr-ok {
-      background: rgba(29, 158, 117, .07);
-      border-color: rgba(29, 158, 117, .2)
-    }
-
-    .check-icon {
-      font-size: 16px;
-      flex-shrink: 0
-    }
-
-    .check-name {
-      font-size: 13px;
-      font-weight: 500;
-      flex: 1
-    }
-
-    .check-detail {
-      font-size: 11px;
-      color: rgba(255, 255, 255, .45);
-      margin-top: 2px
-    }
-
-    .check-days {
-      font-size: 12px;
-      font-weight: 500;
-      white-space: nowrap
-    }
-
-    .section-title {
-      font-size: 11px;
-      font-weight: 500;
-      color: rgba(255, 255, 255, .4);
-      letter-spacing: .06em;
-      margin: 12px 0 6px
-    }
-
-    .filter-info {
-      font-size: 11px;
-      color: rgba(255, 255, 255, 0.4);
-      display: flex;
-      align-items: center;
-      gap: 6px
-    }
-
-    .filter-info button {
-      font-size: 10px;
-      padding: 2px 7px;
-      border: 0.5px solid rgba(255, 255, 255, 0.2);
-      border-radius: 6px;
-      background: transparent;
-      color: rgba(255, 255, 255, 0.5);
-      cursor: pointer
-    }
-
-    .empty-msg {
-      font-size: 13px;
-      color: rgba(255, 255, 255, 0.3);
-      padding: 20px;
-      text-align: center
-    }
-
-    .check-btn {
-      font-size: 12px;
-      padding: 5px 14px;
-      border: 0.5px solid rgba(255, 255, 255, .2);
-      border-radius: 8px;
-      background: transparent;
-      color: rgba(255, 255, 255, .6);
-      cursor: pointer
-    }
-
-    .check-btn:hover {
-      background: rgba(255, 255, 255, .06)
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:system-ui,sans-serif;background:#0f0c29;color:#fff;min-height:100vh}
+
+    /* ══ DESKTOP ══ */
+    .shell{display:grid;grid-template-columns:1fr 340px;grid-template-rows:auto auto 1fr;gap:12px;padding:12px;height:100vh}
+    .header{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:rgba(255,255,255,.07);border:.5px solid rgba(255,255,255,.12);border-radius:12px}
+    .header h1{font-size:15px;font-weight:500}
+    .header-right{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+    .zoom-btns{display:flex;gap:6px}
+    .zoom-btns button{font-size:12px;padding:4px 12px;border:.5px solid rgba(255,255,255,.2);border-radius:8px;background:transparent;color:rgba(255,255,255,.6);cursor:pointer}
+    .zoom-btns button.active{background:rgba(55,138,221,.25);color:#85b7eb;border-color:#378add}
+    .alert-bar{grid-column:1/-1;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+    .alert-chip{display:flex;align-items:center;gap:6px;padding:6px 12px;border-radius:8px;font-size:12px;font-weight:500;cursor:pointer;border:.5px solid transparent;transition:opacity .15s}
+    .alert-chip:hover{opacity:.8}
+    .chip-over{background:rgba(226,75,74,.18);border-color:rgba(226,75,74,.4);color:#f09595}
+    .chip-soon{background:rgba(186,117,23,.18);border-color:rgba(186,117,23,.4);color:#ef9f27}
+    .chip-ok{background:rgba(29,158,117,.18);border-color:rgba(29,158,117,.4);color:#5dcaa5}
+    .alert-dot{width:7px;height:7px;border-radius:50%}
+    .pulse{animation:pulse 1.4s infinite}
+    @keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+    .chart-panel{background:rgba(255,255,255,.07);border:.5px solid rgba(255,255,255,.1);border-radius:12px;padding:16px;display:flex;flex-direction:column;overflow:hidden}
+    .chart-wrap{flex:1;position:relative;min-height:0}
+    .side-panel{display:flex;flex-direction:column;gap:12px;overflow:hidden}
+    .form-card{background:rgba(255,255,255,.07);border:.5px solid rgba(255,255,255,.1);border-radius:12px;padding:16px}
+    .form-card label{font-size:11px;font-weight:500;color:rgba(255,255,255,.45);letter-spacing:.06em;display:block;margin-bottom:10px}
+    .form-card input,.form-card select{width:100%;padding:7px 10px;font-size:13px;border:.5px solid rgba(255,255,255,.15);border-radius:8px;background:rgba(255,255,255,.06);color:#fff;margin-bottom:8px;outline:none}
+    .form-card input:focus,.form-card select:focus{border-color:rgba(55,138,221,.6)}
+    .form-card select option{background:#1a1a2e;color:#fff}
+    .preview-box{background:rgba(0,0,0,.2);border:.5px solid rgba(255,255,255,.1);border-radius:8px;padding:10px;font-size:12px;color:rgba(255,255,255,.5);min-height:56px;margin-bottom:8px}
+    .preview-row{display:flex;align-items:center;gap:6px;margin-bottom:4px}
+    .preview-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+    .preview-bar{height:7px;border-radius:4px;transition:width .3s;opacity:.8}
+    .btn-add{width:100%;padding:9px;font-size:13px;font-weight:500;border:.5px solid #378add;border-radius:8px;background:rgba(55,138,221,.2);color:#85b7eb;cursor:pointer;transition:opacity .15s}
+    .btn-add:hover{opacity:.8}
+    .list-card{background:rgba(255,255,255,.07);border:.5px solid rgba(255,255,255,.1);border-radius:12px;padding:16px;flex:1;overflow:hidden;display:flex;flex-direction:column;min-height:0}
+    .list-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-shrink:0}
+    .list-count{font-size:11px;color:rgba(255,255,255,.35)}
+    .list-scroll{overflow-y:auto;flex:1}
+    .list-scroll::-webkit-scrollbar{width:3px}
+    .list-scroll::-webkit-scrollbar-thumb{background:rgba(255,255,255,.15);border-radius:99px}
+    .item-row{display:flex;align-items:flex-start;gap:8px;padding:10px;border-radius:10px;margin-bottom:6px;border:.5px solid rgba(255,255,255,.08);cursor:pointer;transition:background .15s;position:relative}
+    .item-row:hover{background:rgba(255,255,255,.06)}
+    .item-row.selected{background:rgba(55,138,221,.18);border-color:rgba(55,138,221,.4)}
+    .item-row.row-over{border-color:rgba(226,75,74,.5);background:rgba(226,75,74,.07)}
+    .item-row.row-soon{border-color:rgba(186,117,23,.5);background:rgba(186,117,23,.07)}
+    .item-row.row-over::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:#E24B4A;border-radius:10px 0 0 10px}
+    .item-row.row-soon::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:#ef9f27;border-radius:10px 0 0 10px}
+    .item-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;margin-top:3px}
+    .item-name{font-size:13px;font-weight:500;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .badge{font-size:10px;padding:2px 7px;border-radius:99px;font-weight:500}
+    .badge-ok{background:rgba(29,158,117,.2);color:#5dcaa5}
+    .badge-soon{background:rgba(186,117,23,.25);color:#ef9f27}
+    .badge-over{background:rgba(226,75,74,.25);color:#f09595}
+    .del-btn{font-size:10px;padding:2px 7px;border:.5px solid rgba(226,75,74,.4);border-radius:6px;color:#f09595;background:transparent;cursor:pointer;opacity:.6;flex-shrink:0}
+    .del-btn:hover{opacity:1}
+    .phase-pill{font-size:9px;padding:2px 6px;border-radius:3px;position:relative;cursor:default;transition:transform .1s}
+    .phase-pill:hover{transform:scale(1.15)}
+    .phase-pill .tip{white-space:pre;position:absolute;bottom:calc(100% + 8px);left:50%;transform:translateX(-50%);background:#12103a;border:.5px solid rgba(255,255,255,.22);border-radius:9px;padding:9px 12px;font-size:11px;line-height:1.75;color:rgba(255,255,255,.88);pointer-events:none;opacity:0;transition:opacity .18s;z-index:999;min-width:155px;box-shadow:0 6px 24px rgba(0,0,0,.55)}
+    .phase-pill:hover .tip{opacity:1}
+    .tip-line-ok{color:#5dcaa5}
+    .tip-line-soon{color:#ef9f27}
+    .tip-line-over{color:#f09595}
+    .tip-divider{border:none;border-top:.5px solid rgba(255,255,255,.12);margin:4px 0}
+    .filter-info{font-size:11px;color:rgba(255,255,255,.4);display:flex;align-items:center;gap:6px}
+    .filter-info button{font-size:10px;padding:2px 7px;border:.5px solid rgba(255,255,255,.2);border-radius:6px;background:transparent;color:rgba(255,255,255,.5);cursor:pointer}
+    .empty-msg{font-size:13px;color:rgba(255,255,255,.3);padding:20px;text-align:center}
+    .check-btn{font-size:12px;padding:5px 14px;border:.5px solid rgba(255,255,255,.2);border-radius:8px;background:transparent;color:rgba(255,255,255,.6);cursor:pointer}
+    .check-btn:hover{background:rgba(255,255,255,.06)}
+
+    /* ══ MODAL ══ */
+    .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.65);display:flex;align-items:center;justify-content:center;z-index:300}
+    .modal{background:#1a1635;border:.5px solid rgba(255,255,255,.15);border-radius:16px;padding:24px;width:500px;max-width:95vw;max-height:88vh;overflow-y:auto}
+    .modal h2{font-size:15px;font-weight:500;margin-bottom:16px}
+    .modal-close{float:right;background:transparent;border:none;color:rgba(255,255,255,.5);font-size:20px;cursor:pointer;line-height:1}
+    .check-row{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;margin-bottom:6px;border:.5px solid rgba(255,255,255,.08)}
+    .check-row.cr-over{background:rgba(226,75,74,.1);border-color:rgba(226,75,74,.3)}
+    .check-row.cr-soon{background:rgba(186,117,23,.1);border-color:rgba(186,117,23,.3)}
+    .check-row.cr-ok{background:rgba(29,158,117,.07);border-color:rgba(29,158,117,.2)}
+    .check-icon{font-size:16px;flex-shrink:0}
+    .check-name{font-size:13px;font-weight:500;flex:1}
+    .check-detail{font-size:11px;color:rgba(255,255,255,.45);margin-top:2px}
+    .check-days{font-size:12px;font-weight:500;white-space:nowrap}
+    .section-title{font-size:11px;font-weight:500;color:rgba(255,255,255,.4);letter-spacing:.06em;margin:12px 0 6px}
+
+    /* ══ ADD POPUP MODAL ══ */
+    .add-modal{background:#1a1635;border:.5px solid rgba(255,255,255,.15);border-radius:16px;padding:20px;width:420px;max-width:95vw}
+    .add-modal h2{font-size:14px;font-weight:500;margin-bottom:14px;color:rgba(255,255,255,.8)}
+    .add-modal input,.add-modal select{width:100%;padding:10px 12px;font-size:14px;border:.5px solid rgba(255,255,255,.15);border-radius:10px;background:rgba(255,255,255,.06);color:#fff;margin-bottom:10px;outline:none}
+    .add-modal input:focus,.add-modal select:focus{border-color:rgba(55,138,221,.6)}
+    .add-modal select option{background:#1a1a2e;color:#fff}
+    .add-modal .preview-box{margin-bottom:12px;font-size:12px}
+    .popup-btns{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:4px}
+    .popup-cancel{padding:10px;font-size:13px;border:.5px solid rgba(255,255,255,.15);border-radius:10px;background:transparent;color:rgba(255,255,255,.5);cursor:pointer}
+    .popup-submit{padding:10px;font-size:13px;font-weight:500;border:.5px solid #378add;border-radius:10px;background:rgba(55,138,221,.2);color:#85b7eb;cursor:pointer}
+    .popup-submit:hover{opacity:.85}
+
+    /* ══ MOBILE BOTTOM NAV ══ */
+    .mob-nav{display:none;position:fixed;bottom:0;left:0;right:0;background:#13102e;border-top:.5px solid rgba(255,255,255,.1);z-index:200}
+    .mob-nav-inner{display:flex;justify-content:space-around}
+    .mob-tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:10px 4px 14px;font-size:10px;color:rgba(255,255,255,.4);background:transparent;border:none;cursor:pointer;transition:color .15s}
+    .mob-tab.active{color:#85b7eb}
+    .mob-tab svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+
+    /* ══ MOBILE VIEWS ══ */
+    .mob-view{display:none}
+
+    @media(max-width:700px){
+      body{overflow:auto;padding-bottom:70px}
+      .shell{display:flex;flex-direction:column;height:auto;gap:10px;padding:10px}
+      .header{padding:10px 12px}
+      .header h1{font-size:13px}
+      .check-btn{font-size:11px;padding:4px 10px}
+      .zoom-btns button{font-size:11px;padding:3px 9px}
+      .alert-chip{font-size:11px;padding:5px 10px}
+      .chart-panel{min-height:240px}
+      .chart-wrap{min-height:200px}
+      .side-panel{display:none}
+      .mob-nav{display:block}
+
+      /* list & add views fill screen above nav */
+      .mob-view{display:block;padding:12px 10px 0}
+      .mob-view.hidden{display:none}
+
+      .modal{width:100%;max-width:100%;border-radius:16px 16px 0 0;position:fixed;bottom:0;left:0;right:0;max-height:88vh}
+      .modal-bg{align-items:flex-end}
+      .add-modal{width:94vw;border-radius:16px}
     }
   </style>
 </head>
-
 <body>
 
-  <div class="shell">
-
-    <div class="header">
-      <h1>📦 生产进度管理 PRO</h1>
-      <div style="display:flex;align-items:center;gap:10px">
-        <div class="filter-info" id="filter-info" style="display:none">
-          <span id="filter-label"></span>
-          <button onclick="clearFilter()">✕ 清除筛选</button>
-        </div>
-        <button class="check-btn" onclick="openModal()">📋 进度检查</button>
-        <div class="zoom-btns">
-          <button onclick="setZoom('day')" id="z-day" class="active">日</button>
-          <button onclick="setZoom('week')" id="z-week">周</button>
-          <button onclick="setZoom('month')" id="z-month">月</button>
-        </div>
+<div class="shell">
+  <!-- Header -->
+  <div class="header">
+    <h1>📦 生产进度管理 PRO</h1>
+    <div class="header-right">
+      <div class="filter-info" id="filter-info" style="display:none">
+        <span id="filter-label"></span>
+        <button onclick="clearFilter()">✕ 清除</button>
       </div>
-    </div>
-
-    <div class="alert-bar" id="alert-bar"></div>
-
-    <div class="chart-panel">
-      <div class="chart-wrap">
-        <canvas id="chart"></canvas>
-      </div>
-    </div>
-
-    <div class="side-panel">
-      <div class="form-card">
-        <label>新增产品</label>
-        <input id="inp-name" placeholder="产品名称..." oninput="updatePreview()">
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-          <select id="inp-phase" onchange="updatePreview()">
-            <option>FS</option>
-            <option>EP</option>
-            <option>FEP</option>
-            <option>PP</option>
-            <option>PS</option>
-          </select>
-          <input type="date" id="inp-date" oninput="updatePreview()">
-        </div>
-        <div class="preview-box" id="preview-box"><span>填写信息以预览预计进度...</span></div>
-        <button class="btn-add" onclick="addItem()">+ 添加到计划</button>
-      </div>
-
-      <div class="list-card">
-        <div class="list-header">
-          <span style="font-size:11px;font-weight:500;color:rgba(255,255,255,.45);letter-spacing:.06em">产品列表</span>
-          <span class="list-count" id="list-count"></span>
-        </div>
-        <div class="list-scroll" id="list"></div>
+      <button class="check-btn" onclick="openCheckModal()">📋 进度检查</button>
+      <div class="zoom-btns">
+        <button onclick="setZoom('day')" id="z-day" class="active">日</button>
+        <button onclick="setZoom('week')" id="z-week">周</button>
+        <button onclick="setZoom('month')" id="z-month">月</button>
       </div>
     </div>
   </div>
 
-  <div class="modal-bg" id="modal" style="display:none" onclick="if(event.target===this)closeModal()">
-    <div class="modal">
-      <button class="modal-close" onclick="closeModal()">✕</button>
-      <h2>📋 生产进度检查</h2>
-      <div id="modal-body"></div>
-    </div>
+  <!-- Alert bar -->
+  <div class="alert-bar" id="alert-bar"></div>
+
+  <!-- Chart -->
+  <div class="chart-panel">
+    <div class="chart-wrap"><canvas id="chart"></canvas></div>
   </div>
 
-  <script>
-    const API = "https://script.google.com/macros/s/AKfycbzyAAK-Su1xJv4CQ9GSiLYKhkG6UQN7oGaHO_mpzI3poStDs0O9mNhUzczqER8kk-5l_A/exec";
-    const PHASES = ["FS", "EP", "FEP", "PP", "PS"];
-    const PHASE_COLORS = { FS: "#378ADD", EP: "#1D9E75", FEP: "#BA7517", PP: "#D4537E", PS: "#534AB7" };
-    const PHASE_DAYS = { FS: 7, EP: 10, FEP: 14, PP: 7, PS: 5 };
+  <!-- Desktop side -->
+  <div class="side-panel">
+    <div class="form-card">
+      <label>新增产品</label>
+      <input id="d-name" placeholder="产品名称..." oninput="updatePreview('d')">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <select id="d-phase" onchange="updatePreview('d')">
+          <option>FS</option><option>EP</option><option>FEP</option><option>PP</option><option>PS</option>
+        </select>
+        <input type="date" id="d-date" oninput="updatePreview('d')">
+      </div>
+      <div class="preview-box" id="d-preview"><span>填写信息以预览预计进度...</span></div>
+      <button class="btn-add" onclick="doAdd('d')">+ 添加到计划</button>
+    </div>
+    <div class="list-card">
+      <div class="list-header">
+        <span style="font-size:11px;font-weight:500;color:rgba(255,255,255,.45);letter-spacing:.06em">产品列表</span>
+        <span class="list-count" id="d-list-count"></span>
+      </div>
+      <div class="list-scroll" id="d-list"></div>
+    </div>
+  </div>
+</div>
 
-    let chart, rawData = [], currentFilter = null, currentUnit = 'day', statusFilter = null;
+<!-- ══ MOBILE: list view (shown above nav) ══ -->
+<div class="mob-view hidden" id="mob-list-view">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+    <span style="font-size:12px;font-weight:500;color:rgba(255,255,255,.45);letter-spacing:.06em">产品列表</span>
+    <span id="m-list-count" style="font-size:11px;color:rgba(255,255,255,.35)"></span>
+  </div>
+  <div id="m-list"></div>
+</div>
 
-    // ── LOAD ──────────────────────────────────────────
-    async function load() {
-      try {
-        let res = await fetch(API);
-        rawData = await res.json();
-        rawData.sort((a, b) => new Date(a.date) - new Date(b.date));
-      } catch (e) { rawData = []; }
-      renderAlertBar();
-      renderList();
-      drawChart();
-    }
+<!-- ══ MOBILE BOTTOM NAV ══ -->
+<nav class="mob-nav">
+  <div class="mob-nav-inner">
+    <button class="mob-tab" id="mob-tab-chart" onclick="mobSwitch('chart')">
+      <svg viewBox="0 0 24 24"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
+      图表
+    </button>
+    <button class="mob-tab active" id="mob-tab-list" onclick="mobSwitch('list')">
+      <svg viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>
+      列表
+    </button>
+    <button class="mob-tab" id="mob-tab-add" onclick="openAddModal()">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/></svg>
+      新增
+    </button>
+    <button class="mob-tab" id="mob-tab-check" onclick="openCheckModal()">
+      <svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+      检查
+    </button>
+  </div>
+</nav>
 
-    // ── ADD ───────────────────────────────────────────
-    async function addItem() {
-      let name = document.getElementById('inp-name').value.trim();
-      let phase = document.getElementById('inp-phase').value;
-      let date = document.getElementById('inp-date').value;
-      if (!name || !date) { alert("请填写完整信息！"); return; }
-      let form = new URLSearchParams();
-      form.append("action", "create"); form.append("name", name);
-      form.append("phase", phase); form.append("date", date);
-      try { await fetch(API, { method: "POST", body: form }); } catch (e) { }
-      document.getElementById('inp-name').value = '';
-      document.getElementById('inp-date').value = '';
-      document.getElementById('preview-box').innerHTML = '<span>填写信息以预览预计进度...</span>';
-      load();
-    }
+<!-- ══ ADD POPUP MODAL ══ -->
+<div class="modal-bg" id="add-modal-bg" style="display:none" onclick="if(event.target===this)closeAddModal()">
+  <div class="add-modal">
+    <button class="modal-close" onclick="closeAddModal()">✕</button>
+    <h2>新增产品</h2>
+    <input id="p-name" placeholder="产品名称..." oninput="updatePreview('p')">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      <select id="p-phase" onchange="updatePreview('p')">
+        <option>FS</option><option>EP</option><option>FEP</option><option>PP</option><option>PS</option>
+      </select>
+      <input type="date" id="p-date" oninput="updatePreview('p')">
+    </div>
+    <div class="preview-box" id="p-preview"><span>填写信息以预览预计进度...</span></div>
+    <div class="popup-btns">
+      <button class="popup-cancel" onclick="closeAddModal()">取消</button>
+      <button class="popup-submit" onclick="doAdd('p')">+ 添加到计划</button>
+    </div>
+  </div>
+</div>
 
-    // ── DELETE ────────────────────────────────────────
-    async function removeItem(i) {
-      let form = new URLSearchParams();
-      form.append("action", "delete"); form.append("index", i);
-      try { await fetch(API, { method: "POST", body: form }); } catch (e) { }
-      load();
-    }
+<!-- ══ CHECK MODAL ══ -->
+<div class="modal-bg" id="check-modal-bg" style="display:none" onclick="if(event.target===this)closeCheckModal()">
+  <div class="modal">
+    <button class="modal-close" onclick="closeCheckModal()">✕</button>
+    <h2>📋 生产进度检查</h2>
+    <div id="check-modal-body"></div>
+  </div>
+</div>
 
-    // ── HELPERS ───────────────────────────────────────
-    function getGroups(data) {
-      let g = {};
-      data.forEach(o => { if (!g[o.name]) g[o.name] = []; g[o.name].push(o); });
-      return g;
-    }
+<script>
+const API="https://script.google.com/macros/s/AKfycbzyAAK-Su1xJv4CQ9GSiLYKhkG6UQN7oGaHO_mpzI3poStDs0O9mNhUzczqER8kk-5l_A/exec";
+const PHASES=["FS","EP","FEP","PP","PS"];
+const PHASE_COLORS={FS:"#378ADD",EP:"#1D9E75",FEP:"#BA7517",PP:"#D4537E",PS:"#534AB7"};
+const PHASE_DAYS={FS:7,EP:10,FEP:14,PP:7,PS:5};
+let chart,rawData=[],currentFilter=null,currentUnit='day',statusFilter=null;
+let mobView='list';
 
-    function getStatus(dateStr) {
-      let today = new Date(); today.setHours(0, 0, 0, 0);
-      let d = new Date(dateStr);
-      let diff = (d - today) / 86400000;
-      if (diff < 0) return { st: 'over', diff: Math.abs(Math.floor(diff)) };
-      if (diff <= 3) return { st: 'soon', diff: Math.ceil(diff) };
-      return { st: 'ok', diff: Math.ceil(diff) };
-    }
+// ── LOAD ─────────────────────────────────────────
+async function load(){
+  try{ let r=await fetch(API); rawData=await r.json(); rawData.sort((a,b)=>new Date(a.date)-new Date(b.date)); }
+  catch(e){ rawData=[]; }
+  renderAlertBar(); renderList(); drawChart();
+}
 
-    function fmtDate(d) { return new Date(d).toLocaleDateString('zh-CN', { month: '2-digit', day: '2-digit' }); }
-    function fmtFull(d) { return new Date(d).toLocaleDateString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' }); }
+// ── ADD ──────────────────────────────────────────
+async function doAdd(prefix){
+  let name=document.getElementById(prefix+'-name').value.trim();
+  let phase=document.getElementById(prefix+'-phase').value;
+  let date=document.getElementById(prefix+'-date').value;
+  if(!name||!date){ alert("请填写完整信息！"); return; }
+  let form=new URLSearchParams();
+  form.append("action","create"); form.append("name",name); form.append("phase",phase); form.append("date",date);
+  try{ await fetch(API,{method:"POST",body:form}); } catch(e){}
+  document.getElementById(prefix+'-name').value='';
+  document.getElementById(prefix+'-date').value='';
+  document.getElementById(prefix+'-preview').innerHTML='<span>填写信息以预览预计进度...</span>';
+  if(prefix==='p') closeAddModal();
+  load();
+}
 
-    // ── ALERT BAR ─────────────────────────────────────
-    function renderAlertBar() {
-      let groups = getGroups(rawData);
-      let over = 0, soon = 0, ok = 0;
-      Object.keys(groups).forEach(name => {
-        let phases = groups[name].sort((a, b) => new Date(a.date) - new Date(b.date));
-        let { st } = getStatus(phases[phases.length - 1].date);
-        if (st === 'over') over++;
-        else if (st === 'soon') soon++;
-        else ok++;
-      });
-      let total = over + soon + ok;
-      let bar = document.getElementById('alert-bar');
-      if (!total) { bar.innerHTML = ''; return; }
-      bar.innerHTML = `
-    ${over > 0 ? `<div class="alert-chip chip-over" onclick="filterStatus('over')">
-      <div class="alert-dot pulse" style="background:#E24B4A"></div>已逾期 ${over} 个产品
-    </div>`: ''}
-    ${soon > 0 ? `<div class="alert-chip chip-soon" onclick="filterStatus('soon')">
-      <div class="alert-dot pulse" style="background:#ef9f27"></div>即将到期 ${soon} 个（3天内）
-    </div>`: ''}
-    ${ok > 0 ? `<div class="alert-chip chip-ok">
-      <div class="alert-dot" style="background:#5dcaa5"></div>正常进行 ${ok} 个产品
-    </div>`: ''}
-    <div style="margin-left:auto;display:flex;align-items:center;font-size:11px;color:rgba(255,255,255,.35)">
-      总计 ${total} 个 &nbsp;|&nbsp;
-      <span style="color:${over > 0 ? '#f09595' : 'rgba(255,255,255,.35)'}">逾期率 ${Math.round(over / total * 100)}%</span>
-    </div>`;
-    }
+// ── DELETE ───────────────────────────────────────
+async function removeItem(i){
+  let form=new URLSearchParams(); form.append("action","delete"); form.append("index",i);
+  try{ await fetch(API,{method:"POST",body:form}); } catch(e){}
+  load();
+}
 
-    function filterStatus(st) { statusFilter = st; renderList(); }
+// ── HELPERS ──────────────────────────────────────
+function getGroups(data){ let g={}; data.forEach(o=>{ if(!g[o.name]) g[o.name]=[]; g[o.name].push(o); }); return g; }
+function getStatus(ds){
+  let t=new Date(); t.setHours(0,0,0,0); let d=new Date(ds); let df=(d-t)/86400000;
+  if(df<0) return {st:'over',diff:Math.abs(Math.floor(df))};
+  if(df<=3) return {st:'soon',diff:Math.ceil(df)};
+  return {st:'ok',diff:Math.ceil(df)};
+}
+function fmtDate(d){ return new Date(d).toLocaleDateString('zh-CN',{month:'2-digit',day:'2-digit'}); }
+function fmtFull(d){ return new Date(d).toLocaleDateString('zh-CN',{year:'numeric',month:'2-digit',day:'2-digit'}); }
+function sortNames(names,groups){
+  return names.sort((a,b)=>{
+    let pa=groups[a].sort((x,y)=>new Date(x.date)-new Date(y.date));
+    let pb=groups[b].sort((x,y)=>new Date(x.date)-new Date(y.date));
+    let o={over:0,soon:1,ok:2};
+    return o[getStatus(pa[pa.length-1].date).st]-o[getStatus(pb[pb.length-1].date).st];
+  });
+}
+function getPhaseRange(phases,p){
+  let found=phases.find(x=>x.phase===p); if(!found) return null;
+  let startD=new Date(found.date);
+  let nx=phases.find(x=>PHASES.indexOf(x.phase)>PHASES.indexOf(p));
+  let endD=nx?new Date(nx.date):(()=>{ let e=new Date(startD); e.setDate(e.getDate()+PHASE_DAYS[p]); return e; })();
+  return {startD,endD,days:Math.round((endD-startD)/86400000)};
+}
 
-    // ── SORT NAMES ────────────────────────────────────
-    function sortNames(names, groups) {
-      return names.sort((a, b) => {
-        let pa = groups[a].sort((x, y) => new Date(x.date) - new Date(y.date));
-        let pb = groups[b].sort((x, y) => new Date(x.date) - new Date(y.date));
-        let sa = getStatus(pa[pa.length - 1].date).st;
-        let sb = getStatus(pb[pb.length - 1].date).st;
-        let o = { over: 0, soon: 1, ok: 2 };
-        return o[sa] - o[sb];
-      });
-    }
+// ── ALERT BAR ────────────────────────────────────
+function renderAlertBar(){
+  let groups=getGroups(rawData),over=0,soon=0,ok=0;
+  Object.keys(groups).forEach(n=>{
+    let ph=groups[n].sort((a,b)=>new Date(a.date)-new Date(b.date));
+    let {st}=getStatus(ph[ph.length-1].date);
+    if(st==='over') over++; else if(st==='soon') soon++; else ok++;
+  });
+  let total=over+soon+ok;
+  let bar=document.getElementById('alert-bar');
+  if(!total){ bar.innerHTML=''; return; }
+  bar.innerHTML=`
+    ${over>0?`<div class="alert-chip chip-over" onclick="filterStatus('over')"><div class="alert-dot pulse" style="background:#E24B4A"></div>逾期 ${over}</div>`:''}
+    ${soon>0?`<div class="alert-chip chip-soon" onclick="filterStatus('soon')"><div class="alert-dot pulse" style="background:#ef9f27"></div>即将 ${soon}</div>`:''}
+    ${ok>0?`<div class="alert-chip chip-ok"><div class="alert-dot" style="background:#5dcaa5"></div>正常 ${ok}</div>`:''}
+    <div style="margin-left:auto;font-size:11px;color:rgba(255,255,255,.35)">逾期率 <span style="color:${over>0?'#f09595':'rgba(255,255,255,.35)'}">${Math.round(over/total*100)}%</span></div>`;
+}
+function filterStatus(st){ statusFilter=st; renderList(); }
 
-    // ── PHASE DATE RANGE helper ───────────────────────
-    function getPhaseRange(phases, p) {
-      let found = phases.find(x => x.phase === p);
-      if (!found) return null;
-      let startD = new Date(found.date);
-      let nextPh = phases.find(x => PHASES.indexOf(x.phase) > PHASES.indexOf(p));
-      let endD = nextPh
-        ? new Date(nextPh.date)
-        : (() => { let e = new Date(startD); e.setDate(e.getDate() + PHASE_DAYS[p]); return e; })();
-      let days = Math.round((endD - startD) / 86400000);
-      return { startD, endD, days };
-    }
-
-    // ── RENDER LIST ───────────────────────────────────
-    function renderList() {
-      let el = document.getElementById('list');
-      let cnt = document.getElementById('list-count');
-      let groups = getGroups(rawData);
-      let names = sortNames(Object.keys(groups), groups);
-      cnt.textContent = `共 ${names.length} 个`;
-      if (!names.length) { el.innerHTML = `<div class="empty-msg">暂无数据</div>`; return; }
-
-      let html = '';
-      names.forEach(name => {
-        let phases = groups[name].sort((a, b) => new Date(a.date) - new Date(b.date));
-        let lastPhase = phases[phases.length - 1];
-        let { st, diff } = getStatus(lastPhase.date);
-
-        if (statusFilter && st !== statusFilter) return;
-        if (currentFilter && name !== currentFilter) return;
-
-        let badgeCls = st === 'over' ? 'badge-over' : st === 'soon' ? 'badge-soon' : 'badge-ok';
-        let badgeTxt = st === 'over' ? `已逾期 ${diff}天` : st === 'soon' ? `还剩 ${diff}天` : '正常';
-        let rowCls = st === 'over' ? 'row-over' : st === 'soon' ? 'row-soon' : '';
-        let isSelected = currentFilter === name;
-        let pct = Math.round(phases.length / PHASES.length * 100);
-        let barCol = st === 'over' ? '#E24B4A' : st === 'soon' ? '#ef9f27' : PHASE_COLORS[lastPhase.phase];
-        let warnIcon = st === 'over' ? '🔴' : st === 'soon' ? '🟡' : '🟢';
-        let rawIdx = rawData.findIndex(o => o.name === name && o.phase === lastPhase.phase);
-
-        // pills with tooltip
-        let pills = PHASES.map(p => {
-          let found = phases.find(x => x.phase === p);
-          let col = found ? PHASE_COLORS[p] : 'transparent';
-          let tc = found ? PHASE_COLORS[p] : 'rgba(255,255,255,.22)';
-          let bc = found ? PHASE_COLORS[p] : 'rgba(255,255,255,.1)';
-
-          let tipHtml = '';
-          if (found) {
-            let range = getPhaseRange(phases, p);
-            let { st: pst } = getStatus(range.endD.toISOString().split('T')[0]);
-            let stClass = pst === 'over' ? 'tip-line-over' : pst === 'soon' ? 'tip-line-soon' : 'tip-line-ok';
-            let stTxt = pst === 'over' ? `⚠️ 已逾期` : pst === 'soon' ? `⏰ 即将到期` : `✅ 正常`;
-            tipHtml = `<span class="tip"><span style="font-weight:600;font-size:12px;color:${PHASE_COLORS[p]}">${p} 阶段</span>
-<hr class="tip-divider">开始：${fmtFull(range.startD)}
-结束：${fmtFull(range.endD)}
-共计：${range.days} 天
-<span class="${stClass}">${stTxt}</span></span>`;
-          } else {
-            tipHtml = `<span class="tip"><span style="color:rgba(255,255,255,.5)">${p} 阶段</span>
-<hr class="tip-divider"><span style="color:rgba(255,255,255,.35)">尚未安排</span></span>`;
-          }
-
-          return `<span class="phase-pill" style="background:${col}22;color:${tc};border:0.5px solid ${bc}">${p}${tipHtml}</span>`;
-        }).join('');
-
-        html += `<div class="item-row ${rowCls}${isSelected ? ' selected' : ''}" onclick="filterBy('${name.replace(/'/g, "\\'")}')">
-      <div class="item-dot" style="background:${PHASE_COLORS[lastPhase.phase] || '#888'}"></div>
+// ── BUILD LIST HTML ───────────────────────────────
+function buildListHTML(names,groups){
+  if(!names.length) return `<div class="empty-msg">暂无数据</div>`;
+  let html='';
+  names.forEach(name=>{
+    let phases=groups[name].sort((a,b)=>new Date(a.date)-new Date(b.date));
+    let last=phases[phases.length-1];
+    let {st,diff}=getStatus(last.date);
+    if(statusFilter&&st!==statusFilter) return;
+    if(currentFilter&&name!==currentFilter) return;
+    let bCls=st==='over'?'badge-over':st==='soon'?'badge-soon':'badge-ok';
+    let bTxt=st==='over'?`逾期${diff}天`:st==='soon'?`剩${diff}天`:'正常';
+    let rCls=st==='over'?'row-over':st==='soon'?'row-soon':'';
+    let sel=currentFilter===name;
+    let pct=Math.round(phases.length/PHASES.length*100);
+    let barCol=st==='over'?'#E24B4A':st==='soon'?'#ef9f27':PHASE_COLORS[last.phase];
+    let icon=st==='over'?'🔴':st==='soon'?'🟡':'🟢';
+    let idx=rawData.findIndex(o=>o.name===name&&o.phase===last.phase);
+    let pills=PHASES.map(p=>{
+      let found=phases.find(x=>x.phase===p);
+      let col=found?PHASE_COLORS[p]:'transparent';
+      let tc=found?PHASE_COLORS[p]:'rgba(255,255,255,.22)';
+      let bc=found?PHASE_COLORS[p]:'rgba(255,255,255,.1)';
+      let tipHtml='';
+      if(found){
+        let rng=getPhaseRange(phases,p);
+        let {st:ps}=getStatus(rng.endD.toISOString().split('T')[0]);
+        let sc=ps==='over'?'tip-line-over':ps==='soon'?'tip-line-soon':'tip-line-ok';
+        let st2=ps==='over'?'⚠️ 已逾期':ps==='soon'?'⏰ 即将到期':'✅ 正常';
+        tipHtml=`<span class="tip"><span style="font-weight:600;font-size:12px;color:${PHASE_COLORS[p]}">${p} 阶段</span>\n<hr class="tip-divider">开始：${fmtFull(rng.startD)}\n结束：${fmtFull(rng.endD)}\n共计：${rng.days} 天\n<span class="${sc}">${st2}</span></span>`;
+      } else {
+        tipHtml=`<span class="tip"><span style="color:rgba(255,255,255,.5)">${p} 阶段</span>\n<hr class="tip-divider"><span style="color:rgba(255,255,255,.35)">尚未安排</span></span>`;
+      }
+      return `<span class="phase-pill" style="background:${col}22;color:${tc};border:.5px solid ${bc}">${p}${tipHtml}</span>`;
+    }).join('');
+    html+=`<div class="item-row ${rCls}${sel?' selected':''}" onclick="filterBy('${name.replace(/'/g,"\\'")}')">
+      <div class="item-dot" style="background:${PHASE_COLORS[last.phase]||'#888'}"></div>
       <div style="flex:1;min-width:0">
         <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
-          <span style="font-size:13px">${warnIcon}</span>
+          <span style="font-size:13px">${icon}</span>
           <span class="item-name">${name}</span>
-          <span class="badge ${badgeCls}">${badgeTxt}</span>
+          <span class="badge ${bCls}">${bTxt}</span>
         </div>
         <div style="display:flex;gap:4px;margin-bottom:5px;flex-wrap:wrap">${pills}</div>
         <div style="display:flex;align-items:center;gap:6px">
           <div style="flex:1;height:4px;background:rgba(255,255,255,.1);border-radius:99px">
-            <div style="width:${pct}%;height:4px;background:${barCol};border-radius:99px;transition:width .4s"></div>
+            <div style="width:${pct}%;height:4px;background:${barCol};border-radius:99px"></div>
           </div>
           <span style="font-size:10px;color:rgba(255,255,255,.4);min-width:28px;text-align:right">${pct}%</span>
         </div>
       </div>
-      <button class="del-btn" onclick="event.stopPropagation();removeItem(${rawIdx})">删除</button>
+      <button class="del-btn" onclick="event.stopPropagation();removeItem(${idx})">删除</button>
     </div>`;
-      });
+  });
+  return html||`<div class="empty-msg">无符合条件的产品</div>`;
+}
 
-      el.innerHTML = html || `<div class="empty-msg">无符合条件的产品</div>`;
+// ── RENDER LIST ───────────────────────────────────
+function renderList(){
+  let groups=getGroups(rawData);
+  let names=sortNames(Object.keys(groups),groups);
+  // desktop
+  let dl=document.getElementById('d-list');
+  if(dl){ document.getElementById('d-list-count').textContent=`共 ${names.length} 个`; dl.innerHTML=buildListHTML(names,groups); }
+  // mobile
+  let ml=document.getElementById('m-list');
+  if(ml){ document.getElementById('m-list-count').textContent=`共 ${names.length} 个`; ml.innerHTML=buildListHTML(names,groups); }
+  // filter label
+  let fi=document.getElementById('filter-info'),fl=document.getElementById('filter-label');
+  if(currentFilter){ fi.style.display='flex'; fl.textContent=`筛选：${currentFilter}`; }
+  else { fi.style.display='none'; }
+}
 
-      let fi = document.getElementById('filter-info');
-      let fl = document.getElementById('filter-label');
-      if (currentFilter) { fi.style.display = 'flex'; fl.textContent = `筛选：${currentFilter}`; }
-      else { fi.style.display = 'none'; }
-    }
+// ── PREVIEW ──────────────────────────────────────
+function updatePreview(prefix){
+  let name=document.getElementById(prefix+'-name').value.trim();
+  let selPh=document.getElementById(prefix+'-phase').value;
+  let dateVal=document.getElementById(prefix+'-date').value;
+  let box=document.getElementById(prefix+'-preview');
+  if(!name||!dateVal){ box.innerHTML='<span>填写信息以预览预计进度...</span>'; return; }
+  let si=PHASES.indexOf(selPh),rem=PHASES.slice(si);
+  let total=rem.reduce((s,p)=>s+PHASE_DAYS[p],0);
+  let today=new Date(); today.setHours(0,0,0,0);
+  let cur=new Date(dateVal); cur.setHours(0,0,0,0);
+  let end=new Date(cur); end.setDate(end.getDate()+total);
+  let html=`<div style="font-size:11px;font-weight:500;margin-bottom:7px;color:rgba(255,255,255,.8)">${name} — 预计 ${total} 天</div>`;
+  let d=new Date(cur);
+  rem.forEach(ph=>{
+    let s=new Date(d),e=new Date(d); e.setDate(e.getDate()+PHASE_DAYS[ph]);
+    let ov=(e<today),bw=Math.round((PHASE_DAYS[ph]/total)*100),col=ov?'#E24B4A':PHASE_COLORS[ph];
+    html+=`<div class="preview-row">
+      <div class="preview-dot" style="background:${col}"></div>
+      <span style="width:30px;font-size:10px;font-weight:500;color:${col}">${ph}</span>
+      <div class="preview-bar" style="width:${bw}%;background:${col}"></div>
+      <span style="font-size:10px;color:rgba(255,255,255,.4);margin-left:4px;white-space:nowrap">${fmtDate(s)}–${fmtDate(e)} (${PHASE_DAYS[ph]}天)</span>
+    </div>`;
+    d=new Date(e);
+  });
+  html+=`<div style="font-size:10px;color:rgba(255,255,255,.35);margin-top:6px">预计结束：${fmtFull(end)}</div>`;
+  box.innerHTML=html;
+}
 
-    // ── MODAL ─────────────────────────────────────────
-    function openModal() {
-      let groups = getGroups(rawData);
-      let names = Object.keys(groups);
-      if (!names.length) { alert("暂无产品数据"); return; }
+// ── MOBILE SWITCH ─────────────────────────────────
+function mobSwitch(view){
+  mobView=view;
+  ['chart','list','add','check'].forEach(t=>{
+    let el=document.getElementById('mob-tab-'+t);
+    if(el) el.classList.remove('active');
+  });
+  let tab=document.getElementById('mob-tab-'+view);
+  if(tab) tab.classList.add('active');
+  // show/hide views
+  let lv=document.getElementById('mob-list-view');
+  let cp=document.querySelector('.chart-panel');
+  if(view==='list'){ lv.classList.remove('hidden'); }
+  else { lv.classList.add('hidden'); }
+}
 
-      let over = [], soon = [], ok = [];
-      names.forEach(name => {
-        let phases = groups[name].sort((a, b) => new Date(a.date) - new Date(b.date));
-        let last = phases[phases.length - 1];
-        let { st, diff } = getStatus(last.date);
-        let pct = Math.round(phases.length / PHASES.length * 100);
-        let obj = { name, phase: last.phase, date: last.date, diff, pct };
-        if (st === 'over') over.push(obj);
-        else if (st === 'soon') soon.push(obj);
-        else ok.push(obj);
-      });
+// ── ADD POPUP ─────────────────────────────────────
+function openAddModal(){
+  document.getElementById('add-modal-bg').style.display='flex';
+  // sync phase/date if empty
+}
+function closeAddModal(){
+  document.getElementById('add-modal-bg').style.display='none';
+}
 
-      let html = '';
-      const block = (arr, cls, icon, col) => {
-        if (!arr.length) return '';
-        let t = cls === 'cr-over' ? `🔴 已逾期（${arr.length}）` : cls === 'cr-soon' ? `🟡 即将到期（${arr.length}）` : `🟢 正常进行（${arr.length}）`;
-        let s = `<div class="section-title">${t}</div>`;
-        arr.forEach(o => {
-          s += `<div class="check-row ${cls}">
+// ── CHECK MODAL ───────────────────────────────────
+function openCheckModal(){
+  let groups=getGroups(rawData),names=Object.keys(groups);
+  if(!names.length){ alert("暂无产品数据"); return; }
+  let over=[],soon=[],ok=[];
+  names.forEach(name=>{
+    let ph=groups[name].sort((a,b)=>new Date(a.date)-new Date(b.date));
+    let last=ph[ph.length-1],{st,diff}=getStatus(last.date);
+    let pct=Math.round(ph.length/PHASES.length*100);
+    let obj={name,phase:last.phase,date:last.date,diff,pct};
+    if(st==='over') over.push(obj); else if(st==='soon') soon.push(obj); else ok.push(obj);
+  });
+  let html='';
+  const block=(arr,cls,icon,col)=>{
+    if(!arr.length) return '';
+    let t=cls==='cr-over'?`🔴 已逾期（${arr.length}）`:cls==='cr-soon'?`🟡 即将到期（${arr.length}）`:`🟢 正常进行（${arr.length}）`;
+    let s=`<div class="section-title">${t}</div>`;
+    arr.forEach(o=>{
+      s+=`<div class="check-row ${cls}">
         <span class="check-icon">${icon}</span>
         <div style="flex:1">
           <div class="check-name">${o.name}</div>
-          <div class="check-detail">当前阶段：${o.phase} &nbsp;|&nbsp; 截止：${fmtFull(o.date)} &nbsp;|&nbsp; 进度 ${o.pct}%</div>
+          <div class="check-detail">阶段：${o.phase} | 截止：${fmtFull(o.date)} | 进度 ${o.pct}%</div>
           <div style="margin-top:5px;height:3px;background:rgba(255,255,255,.1);border-radius:99px">
             <div style="width:${o.pct}%;height:3px;background:${col};border-radius:99px"></div>
           </div>
         </div>
-        <span class="check-days" style="color:${col}">${cls === 'cr-over' ? `逾期 ${o.diff}天` : cls === 'cr-soon' ? `还剩 ${o.diff}天` : `还剩 ${o.diff}天`}</span>
+        <span class="check-days" style="color:${col}">${cls==='cr-over'?`逾期${o.diff}天`:`剩${o.diff}天`}</span>
       </div>`;
-        });
-        return s;
-      };
-
-      html += block(over, 'cr-over', '⚠️', '#E24B4A');
-      html += block(soon, 'cr-soon', '⏰', '#ef9f27');
-      html += block(ok, 'cr-ok', '✅', '#1D9E75');
-
-      let total = names.length;
-      let overRate = Math.round(over.length / total * 100);
-      html += `<div style="margin-top:16px;padding:12px;background:rgba(255,255,255,.04);border-radius:8px;font-size:12px;color:rgba(255,255,255,.5)">
+    });
+    return s;
+  };
+  html+=block(over,'cr-over','⚠️','#E24B4A');
+  html+=block(soon,'cr-soon','⏰','#ef9f27');
+  html+=block(ok,'cr-ok','✅','#1D9E75');
+  let total=names.length,overRate=Math.round(over.length/total*100);
+  html+=`<div style="margin-top:16px;padding:12px;background:rgba(255,255,255,.04);border-radius:8px;font-size:12px;color:rgba(255,255,255,.5)">
     <div style="margin-bottom:6px;font-weight:500;color:rgba(255,255,255,.7)">总体概况</div>
-    <div style="display:flex;gap:16px;flex-wrap:wrap">
-      <span>总产品：<b style="color:#fff">${total}</b></span>
-      <span>已逾期：<b style="color:#f09595">${over.length}</b></span>
-      <span>即将到期：<b style="color:#ef9f27">${soon.length}</b></span>
+    <div style="display:flex;gap:12px;flex-wrap:wrap">
+      <span>总计：<b style="color:#fff">${total}</b></span>
+      <span>逾期：<b style="color:#f09595">${over.length}</b></span>
+      <span>即将：<b style="color:#ef9f27">${soon.length}</b></span>
       <span>正常：<b style="color:#5dcaa5">${ok.length}</b></span>
-      <span>逾期率：<b style="color:${overRate > 30 ? '#f09595' : overRate > 10 ? '#ef9f27' : '#5dcaa5'}">${overRate}%</b></span>
+      <span>逾期率：<b style="color:${overRate>30?'#f09595':overRate>10?'#ef9f27':'#5dcaa5'}">${overRate}%</b></span>
     </div>
   </div>`;
+  document.getElementById('check-modal-body').innerHTML=html;
+  document.getElementById('check-modal-bg').style.display='flex';
+}
+function closeCheckModal(){ document.getElementById('check-modal-bg').style.display='none'; }
 
-      document.getElementById('modal-body').innerHTML = html;
-      document.getElementById('modal').style.display = 'flex';
+// ── FILTER ───────────────────────────────────────
+function filterBy(name){ currentFilter=(currentFilter===name)?null:name; statusFilter=null; renderList(); drawChart(); }
+function clearFilter(){ currentFilter=null; statusFilter=null; renderList(); drawChart(); }
+function setZoom(u){
+  currentUnit=u;
+  ['day','week','month'].forEach(x=>document.getElementById('z-'+x).classList.remove('active'));
+  document.getElementById('z-'+u).classList.add('active');
+  drawChart();
+}
+
+// ── DRAW CHART ────────────────────────────────────
+function drawChart(){
+  if(chart){ chart.destroy(); chart=null; }
+  let ex=Chart.getChart('chart'); if(ex) ex.destroy();
+  let data=currentFilter?rawData.filter(o=>o.name===currentFilter):rawData;
+  let groups=getGroups(data);
+  let labels=sortNames(Object.keys(groups),groups);
+  if(!labels.length) return;
+  let today=new Date(); today.setHours(0,0,0,0);
+  let minDate=new Date(today.getFullYear(),today.getMonth(),1);
+  let mob=window.innerWidth<=700;
+  let datasets=[];
+  PHASES.forEach(phase=>{
+    let arr=[],bgColors=[];
+    labels.forEach(name=>{
+      let phases=groups[name].sort((a,b)=>new Date(a.date)-new Date(b.date));
+      let idx=phases.findIndex(p=>p.phase===phase);
+      if(idx!==-1){
+        let start=new Date(phases[idx].date);
+        let end=idx<phases.length-1?new Date(phases[idx+1].date):(()=>{ let e=new Date(start); e.setDate(e.getDate()+2); return e; })();
+        let {st}=getStatus(end.toISOString().split('T')[0]);
+        let color=st==='over'?'#E24B4A':st==='soon'?'#ef9f27':PHASE_COLORS[phase];
+        arr.push({x:[start,end],y:name}); bgColors.push(color);
+      } else { arr.push({x:[new Date(0),new Date(0)],y:name}); bgColors.push('transparent'); }
+    });
+    datasets.push({label:phase,data:arr,backgroundColor:bgColors,borderRadius:4,borderSkipped:false});
+  });
+  let ctx=document.getElementById('chart').getContext('2d');
+  chart=new Chart(ctx,{
+    type:'bar',data:{labels,datasets},
+    options:{
+      indexAxis:'y',maintainAspectRatio:false,
+      parsing:{xAxisKey:'x',yAxisKey:'y'},
+      scales:{
+        x:{type:'time',min:minDate,time:{unit:currentUnit},ticks:{color:'rgba(255,255,255,.5)',font:{size:mob?9:11},maxRotation:0},grid:{color:'rgba(255,255,255,.06)'}},
+        y:{stacked:true,ticks:{color:(c)=>{
+          let n=c.tick.label,g=getGroups(data);
+          if(!g[n]) return 'rgba(255,255,255,.8)';
+          let ph=g[n].sort((a,b)=>new Date(a.date)-new Date(b.date));
+          let {st}=getStatus(ph[ph.length-1].date);
+          return st==='over'?'#f09595':st==='soon'?'#ef9f27':'rgba(255,255,255,.8)';
+        },font:{size:mob?10:12}},grid:{display:false}}
+      },
+      plugins:{
+        legend:{labels:{color:'rgba(255,255,255,.6)',font:{size:mob?9:11},boxWidth:8,boxHeight:8}},
+        tooltip:{callbacks:{label:(c)=>{
+          let d=c.raw;
+          if(!d||!d.x||new Date(d.x[0]).getFullYear()===1970) return '';
+          let s=new Date(d.x[0]),e=new Date(d.x[1]);
+          let days=Math.round((e-s)/86400000);
+          let toEnd=Math.round((e-new Date())/86400000);
+          return [`${c.dataset.label}：${fmtFull(s)} → ${fmtFull(e)}（${days}天）`,toEnd>=0?`距今 ${toEnd}天`:`逾期 ${Math.abs(toEnd)}天`];
+        }}}
+      },
+      onClick:(e,els)=>{ if(els.length) filterBy(labels[els[0].index]); }
     }
-    function closeModal() { document.getElementById('modal').style.display = 'none'; }
+  });
+}
 
-    // ── PREVIEW ───────────────────────────────────────
-    function updatePreview() {
-      let name = document.getElementById('inp-name').value.trim();
-      let selPh = document.getElementById('inp-phase').value;
-      let dateVal = document.getElementById('inp-date').value;
-      let box = document.getElementById('preview-box');
-      if (!name || !dateVal) { box.innerHTML = '<span>填写信息以预览预计进度...</span>'; return; }
-
-      let startIdx = PHASES.indexOf(selPh);
-      let phasesRem = PHASES.slice(startIdx);
-      let totalDays = phasesRem.reduce((s, p) => s + PHASE_DAYS[p], 0);
-      let today = new Date(); today.setHours(0, 0, 0, 0);
-      let cur = new Date(dateVal); cur.setHours(0, 0, 0, 0);
-      let endDate = new Date(cur); endDate.setDate(endDate.getDate() + totalDays);
-
-      let html = `<div style="font-size:11px;font-weight:500;margin-bottom:7px;color:rgba(255,255,255,.8)">${name} — 预计 ${totalDays} 天</div>`;
-      let d = new Date(cur);
-      phasesRem.forEach(ph => {
-        let s = new Date(d);
-        let e = new Date(d); e.setDate(e.getDate() + PHASE_DAYS[ph]);
-        let overdue = (e < today);
-        let barW = Math.round((PHASE_DAYS[ph] / totalDays) * 100);
-        let col = overdue ? '#E24B4A' : PHASE_COLORS[ph];
-        html += `<div class="preview-row">
-      <div class="preview-dot" style="background:${col}"></div>
-      <span style="width:30px;font-size:10px;font-weight:500;color:${col}">${ph}</span>
-      <div class="preview-bar" style="width:${barW}%;background:${col}"></div>
-      <span style="font-size:10px;color:rgba(255,255,255,.4);margin-left:4px;white-space:nowrap">${fmtDate(s)} – ${fmtDate(e)} (${PHASE_DAYS[ph]}天)</span>
-    </div>`;
-        d = new Date(e);
-      });
-      html += `<div style="font-size:10px;color:rgba(255,255,255,.35);margin-top:6px">预计结束：${fmtFull(endDate)}</div>`;
-      box.innerHTML = html;
-    }
-
-    // ── FILTER ────────────────────────────────────────
-    function filterBy(name) {
-      currentFilter = (currentFilter === name) ? null : name;
-      statusFilter = null;
-      renderList(); drawChart();
-    }
-    function clearFilter() { currentFilter = null; statusFilter = null; renderList(); drawChart(); }
-    function setZoom(u) {
-      currentUnit = u;
-      ['day', 'week', 'month'].forEach(x => document.getElementById('z-' + x).classList.remove('active'));
-      document.getElementById('z-' + u).classList.add('active');
-      drawChart();
-    }
-
-    // ── DRAW CHART ────────────────────────────────────
-    function drawChart() {
-      if (chart) { chart.destroy(); chart = null; }
-      let ex = Chart.getChart('chart'); if (ex) ex.destroy();
-
-      let data = currentFilter ? rawData.filter(o => o.name === currentFilter) : rawData;
-      let groups = getGroups(data);
-      let labels = sortNames(Object.keys(groups), groups);
-      if (!labels.length) return;
-
-      let today = new Date(); today.setHours(0, 0, 0, 0);
-      let minDate = new Date(today.getFullYear(), today.getMonth(), 1);
-      let datasets = [];
-
-      PHASES.forEach(phase => {
-        let arr = [], bgColors = [];
-        labels.forEach(name => {
-          let phases = groups[name].sort((a, b) => new Date(a.date) - new Date(b.date));
-          let idx = phases.findIndex(p => p.phase === phase);
-          if (idx !== -1) {
-            let start = new Date(phases[idx].date);
-            let end;
-            if (idx < phases.length - 1) { end = new Date(phases[idx + 1].date); }
-            else { end = new Date(start); end.setDate(end.getDate() + 2); }
-            let { st } = getStatus(end.toISOString().split('T')[0]);
-            let color = st === 'over' ? '#E24B4A' : st === 'soon' ? '#ef9f27' : PHASE_COLORS[phase];
-            arr.push({ x: [start, end], y: name }); bgColors.push(color);
-          } else {
-            arr.push({ x: [new Date(0), new Date(0)], y: name });
-            bgColors.push('transparent');
-          }
-        });
-        datasets.push({ label: phase, data: arr, backgroundColor: bgColors, borderRadius: 4, borderSkipped: false });
-      });
-
-      let ctx = document.getElementById('chart').getContext('2d');
-      chart = new Chart(ctx, {
-        type: 'bar',
-        data: { labels, datasets },
-        options: {
-          indexAxis: 'y',
-          maintainAspectRatio: false,
-          parsing: { xAxisKey: 'x', yAxisKey: 'y' },
-          scales: {
-            x: {
-              type: 'time', min: minDate,
-              time: { unit: currentUnit },
-              ticks: { color: 'rgba(255,255,255,.5)', font: { size: 11 } },
-              grid: { color: 'rgba(255,255,255,.06)' }
-            },
-            y: {
-              stacked: true,
-              ticks: {
-                color: (ctx) => {
-                  let name = ctx.tick.label;
-                  let g = getGroups(data);
-                  if (!g[name]) return 'rgba(255,255,255,.8)';
-                  let ph = g[name].sort((a, b) => new Date(a.date) - new Date(b.date));
-                  let { st } = getStatus(ph[ph.length - 1].date);
-                  return st === 'over' ? '#f09595' : st === 'soon' ? '#ef9f27' : 'rgba(255,255,255,.8)';
-                },
-                font: { size: 12 }
-              },
-              grid: { display: false }
-            }
-          },
-          plugins: {
-            legend: { labels: { color: 'rgba(255,255,255,.6)', font: { size: 11 }, boxWidth: 10, boxHeight: 10 } },
-            tooltip: {
-              callbacks: {
-                label: (c) => {
-                  let d = c.raw;
-                  if (!d || !d.x || new Date(d.x[0]).getFullYear() === 1970) return '';
-
-                  let start = new Date(d.x[0]);
-                  let end = new Date(d.x[1]);
-                  let today = new Date(); today.setHours(0, 0, 0, 0);
-
-                  let durationDays = Math.round((end - start) / 86400000);
-                  let toEndDays = Math.round((end - today) / 86400000);
-
-                  let cn = toEndDays >= 0
-                    ? `距今天 ${toEndDays}天`
-                    : `已逾期 ${Math.abs(toEndDays)}天`;
-
-                  let en = toEndDays >= 0
-                    ? `${toEndDays} days left`
-                    : `Overdue ${Math.abs(toEndDays)} days`;
-
-                  return [
-                    `${c.dataset.label}：${fmtFull(start)} → ${fmtFull(end)}（${durationDays}天 / ${durationDays} days）`,
-                    `${cn} / ${en}`
-                  ];
-                }
-              }
-            }
-          },
-          onClick: (e, els) => { if (els.length) filterBy(labels[els[0].index]); }
-        }
-      });
-    }
-
-    window.onload = () => { load(); };
-  </script>
+window.onload=()=>{
+  load();
+  // mobile: default show list view
+  if(window.innerWidth<=700){ mobSwitch('list'); }
+};
+window.addEventListener('resize',()=>{ drawChart(); });
+</script>
 </body>
-
 </html>
